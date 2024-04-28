@@ -4,15 +4,14 @@ const Texture = @import("game/Texture.zig").Texture;
 const Allocator = std.mem.Allocator;
 
 const texturesFilepath = [_][]const u8{
+    "empty",
+    "assets/textures/wood.bmp",
+    "assets/textures/eagle.bmp",
+    "assets/textures/greystone.bmp",
+    "assets/textures/colorstone.bmp",
+    "assets/textures/redbrick.bmp",
+    "assets/textures/mossy.bmp",
     "assets/textures/door.bmp",
-    "data/wood.bmp",
-    "data/eagle.bmp",
-    "data/greystone.bmp",
-    "data/colorstone.bmp",
-    "data/redbrick.bmp",
-    "data/mossy.bmp",
-    "data/purplestone.bmp",
-    "data/purplestone.bmp",
 };
 
 pub const Colour = struct { r: u8, g: u8, b: u8 };
@@ -30,6 +29,8 @@ textures: []Texture,
 screen_buffer: []u32,
 back_buffer: []u32,
 string_buffer: []u8,
+cameraX: []f32,
+Zbuffer: []f32,
 width: u32,
 height: u32,
 resolution: u32,
@@ -46,6 +47,22 @@ pub fn init(allocator: *Allocator, width: u32, height: u32, resolution: u32) !Re
     const back_buffer = try allocator.alloc(u32, (width * height));
     errdefer allocator.free(back_buffer);
     initialiseBackBuffer(width, height, back_buffer);
+
+    const cameraX = try allocator.alloc(f32, resolution);
+    errdefer allocator.free(cameraX);
+
+    var i: u32 = 0;
+    while (i < resolution) : (i += 1) {
+        cameraX[i] = 2 * @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(resolution)) - 1; //x-coordinate in camera space
+    }
+
+    const Zbuffer = try allocator.alloc(f32, resolution);
+    errdefer allocator.free(Zbuffer);
+
+    i = 0;
+    while (i < resolution) : (i += 1) {
+        Zbuffer[i] = 0;
+    }
 
     try sdl_wrapper.initVideo();
 
@@ -85,6 +102,8 @@ pub fn init(allocator: *Allocator, width: u32, height: u32, resolution: u32) !Re
         .screen_buffer = screen_buffer,
         .back_buffer = back_buffer,
         .string_buffer = string_buffer,
+        .cameraX = cameraX,
+        .Zbuffer = Zbuffer,
         .width = width,
         .height = height,
         .resolution = resolution,
@@ -94,17 +113,6 @@ pub fn init(allocator: *Allocator, width: u32, height: u32, resolution: u32) !Re
 
     std.debug.print("render ready with width:{d}, height:{d}, resolution:{d} and spacing:{d}\n", .{ width, height, resolution, renderer.spacing });
     return renderer;
-}
-
-fn initialiseBackBuffer(width: u32, height: u32, buffer: []u32) void {
-    var y: u32 = 0;
-    while (y < height) : (y += 1) {
-        var x: u32 = 0;
-        while (x < width) : (x += 1) {
-            const index = (y * width) + x;
-            buffer[index] = 0xffffff;
-        }
-    }
 }
 
 pub fn render(self: *Renderer, delta: f32) void {
@@ -120,10 +128,6 @@ pub fn render(self: *Renderer, delta: f32) void {
 
     const intPos = @as(u32, @intFromFloat(self.position));
 
-    self.drawTextureSlice(25, 25, 0, 256, 256);
-
-    // self.drawTextureSlice(100, 100, 1, 256, 256);
-
     self.drawColoredColumn(20, 40, 20, 0x80ff0000);
     self.drawColoredColumn(21, 40, 20, 0x80ff0000);
     self.drawColoredColumn(22, 40, 20, 0x800000ff);
@@ -136,7 +140,7 @@ pub fn render(self: *Renderer, delta: f32) void {
 
     self.drawColoredColumn(intPos, 20, intPos + 20, 0xff0000ff);
 
-    sdl_wrapper.setWindowTitle(self.sdl_screen, fps_string.ptr);
+    sdl_wrapper.setWindowTitle(self.sdl_screen, fps_string);
     self.updateBuffer();
 
     // draw primitives here
@@ -149,7 +153,7 @@ fn resetBuffer(self: *Renderer) void {
     std.mem.copyForwards(u32, self.screen_buffer, self.back_buffer);
 }
 
-fn drawTextureSlice(self: *Renderer, x: u32, y: u32, textureIndex: u32, width: u32, height: u32) void {
+fn drawSpriteSlice(self: *Renderer, x: u32, y: u32, textureIndex: u32, width: u32, height: u32) void {
     const texture = self.textures[textureIndex];
 
     var currentX: u32 = 0;
@@ -251,6 +255,12 @@ pub fn deinit(self: *Renderer) void {
     self.allocator.free(self.string_buffer);
     self.string_buffer = undefined;
 
+    self.allocator.free(self.cameraX);
+    self.cameraX = undefined;
+
+    self.allocator.free(self.Zbuffer);
+    self.Zbuffer = undefined;
+
     for (self.textures) |*texture| {
         texture.deinit();
     }
@@ -293,4 +303,15 @@ fn mergePixels(pixel1: u32, pixel2: u32) u32 {
     const b = (b1 * invAlpha + b2 * alpha) / 255;
 
     return (r << 16) | (g << 8) | b;
+}
+
+fn initialiseBackBuffer(width: u32, height: u32, buffer: []u32) void {
+    var y: u32 = 0;
+    while (y < height) : (y += 1) {
+        var x: u32 = 0;
+        while (x < width) : (x += 1) {
+            const index = (y * width) + x;
+            buffer[index] = 0xffffff;
+        }
+    }
 }

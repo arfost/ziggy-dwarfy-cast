@@ -1,14 +1,25 @@
 const std = @import("std");
 const sdl_wrapper = @import("sdl_wrapper.zig");
 const Renderer = @import("renderer.zig");
+const MapLoader = @import("game/MapLoader.zig");
+const GameMap = @import("game/GameMap.zig");
 
 pub fn main() anyerror!void {
     var gp = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
     defer _ = gp.deinit();
     var allocator = gp.allocator();
 
+    var map_loader = try MapLoader.init(&allocator, "assets/maps/map1.map");
+    defer map_loader.deinit();
+
+    var game_map = GameMap.init(&map_loader);
+
     var renderer = try Renderer.init(&allocator, 1280, 720, 800);
     defer renderer.deinit();
+
+    const cellInfos = game_map.getCellInfos(2, 2, 2);
+
+    std.log.debug("cellInfos : {any}", .{cellInfos});
 
     var time: i128 = std.time.nanoTimestamp();
     var old_time: i128 = std.time.nanoTimestamp();
