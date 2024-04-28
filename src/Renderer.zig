@@ -5,12 +5,12 @@ const Allocator = std.mem.Allocator;
 
 const texturesFilepath = [_][]const u8{
     "empty",
-    "assets/textures/wood.bmp",
-    "assets/textures/eagle.bmp",
-    "assets/textures/greystone.bmp",
-    "assets/textures/colorstone.bmp",
-    "assets/textures/redbrick.bmp",
-    "assets/textures/mossy.bmp",
+    "assets/textures/floor_construction.bmp",
+    "assets/textures/floor_stone.bmp",
+    "assets/textures/wall_construction.bmp",
+    "assets/textures/wall_mineral.bmp",
+    "assets/textures/sapling_wall.bmp",
+    "assets/textures/stairs_wall_construction.bmp",
     "assets/textures/door.bmp",
 };
 
@@ -135,16 +135,13 @@ pub fn render(self: *Renderer, delta: f32) void {
 
     var x: u32 = 0;
     while (x < 150) : (x += 1) {
-        self.drawTexturedColumn(350 + x, 100, 50, 0, 40 + x);
+        self.drawTexturedColumn(350 + x, 100, 50, 1, 40 + x);
     }
 
     self.drawColoredColumn(intPos, 20, intPos + 20, 0xff0000ff);
 
     sdl_wrapper.setWindowTitle(self.sdl_screen, fps_string);
     self.updateBuffer();
-
-    // draw primitives here
-    self.drawRect(200, 200, 200, 200, Colour{ .r = 255, .g = 0, .b = 0 });
 
     self.refreshScreen();
 }
