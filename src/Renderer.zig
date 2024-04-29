@@ -3,6 +3,7 @@ const sdl_wrapper = @import("sdl_wrapper.zig");
 const Texture = @import("game/Texture.zig").Texture;
 const Player = @import("game/Player.zig");
 const GameMap = @import("game/GameMap.zig");
+const Raycaster = @import("Raycaster.zig");
 const Allocator = std.mem.Allocator;
 
 const texturesFilepath = [_][]const u8{
@@ -27,6 +28,7 @@ sdl_screen: *sdl_wrapper.Window,
 sdl_renderer: *sdl_wrapper.Renderer,
 sdl_surface: *sdl_wrapper.Surface,
 sdl_texture: *sdl_wrapper.Texture,
+raycaster: Raycaster,
 textures: []Texture,
 screen_buffer: []u32,
 back_buffer: []u32,
@@ -94,6 +96,8 @@ pub fn init(allocator: *Allocator, width: u32, height: u32, resolution: u32) !Re
         }
     }
 
+    const raycaster = Raycaster.init(15, 10);
+
     const renderer = Renderer{
         .allocator = allocator,
         .sdl_screen = sdl_screen,
@@ -101,6 +105,7 @@ pub fn init(allocator: *Allocator, width: u32, height: u32, resolution: u32) !Re
         .sdl_surface = sdl_surface,
         .sdl_texture = sdl_texture,
         .textures = textures,
+        .raycaster = raycaster,
         .screen_buffer = screen_buffer,
         .back_buffer = back_buffer,
         .string_buffer = string_buffer,
@@ -117,41 +122,42 @@ pub fn init(allocator: *Allocator, width: u32, height: u32, resolution: u32) !Re
     return renderer;
 }
 
+fn resetBuffer(self: *Renderer) void {
+    std.mem.copyForwards(u32, self.screen_buffer, self.back_buffer);
+}
+
 pub fn render(self: *Renderer, delta: f32, player: *Player, game_map: *GameMap) void {
-    _ = game_map;
-    _ = player;
     const fps = @as(i32, @intFromFloat(1 / delta));
     const fps_string = std.fmt.bufPrintZ(self.string_buffer, "fps : {d}", .{fps}) catch |err| {
         std.debug.print("Failed to allocate string: {any}\n", .{err});
         return;
     };
-
-    self.position += 5 * delta;
-
+    sdl_wrapper.setWindowTitle(self.sdl_screen, fps_string);
     self.resetBuffer();
 
-    const intPos = @as(u32, @intFromFloat(self.position));
+    //render logic here
+    const playerZ = @as(u32, @intFromFloat(player.z));
+    self._renderColumns(player, game_map, playerZ);
 
-    self.drawColoredColumn(20, 40, 20, 0x80ff0000);
-    self.drawColoredColumn(21, 40, 20, 0x80ff0000);
-    self.drawColoredColumn(22, 40, 20, 0x800000ff);
-    self.drawColoredColumn(23, 40, 20, 0x80ff0000);
-
-    var x: u32 = 0;
-    while (x < 150) : (x += 1) {
-        self.drawTexturedColumn(350 + x, 100, 50, 1, 40 + x);
-    }
-
-    self.drawColoredColumn(intPos, 20, intPos + 20, 0xff0000ff);
-
-    sdl_wrapper.setWindowTitle(self.sdl_screen, fps_string);
     self.updateBuffer();
 
     self.refreshScreen();
 }
 
-fn resetBuffer(self: *Renderer) void {
-    std.mem.copyForwards(u32, self.screen_buffer, self.back_buffer);
+fn _renderColumns(self: *Renderer, player: *Player, map: *GameMap, playerZ: u32) void {
+    var x: u32 = 0;
+    while (x < self.resolution) : (x += 1) {
+        const rayResult = self.raycaster.cast(player, self.cameraX[x], map, playerZ);
+        self._drawRay(rayResult, x, player, playerZ);
+    }
+}
+
+fn _drawRay(self: *Renderer, rayResult: []Raycaster.CastStep, x: u32, player: *Player, playerZ: u32) void {
+    _ = self;
+    _ = x;
+    _ = player;
+    _ = playerZ;
+    _ = rayResult;
 }
 
 fn drawSpriteSlice(self: *Renderer, x: u32, y: u32, textureIndex: u32, width: u32, height: u32) void {

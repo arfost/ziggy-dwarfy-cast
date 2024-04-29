@@ -15,17 +15,22 @@ pub fn init(mapLoader: *MapLoader) GameMap {
     return gameMap;
 }
 
-pub fn getCellInfos(self: *GameMap, x: u32, y: u32, z: u32) MapError!MapLoader.MapCell {
-    if (x >= self.mapLoader.width) {
+pub fn getCellInfos(self: *GameMap, x: i32, y: i32, z: i32) MapError!*MapLoader.MapCell {
+    if (x >= self.mapLoader.width or x < 0) {
         return MapError.InvalidCell;
     }
-    if (y >= self.mapLoader.length) {
+    if (y >= self.mapLoader.length or y < 0) {
         return MapError.InvalidCell;
     }
-    if (z >= self.mapLoader.height) {
+    if (z >= self.mapLoader.height or z < 0) {
         return MapError.InvalidCell;
     }
-    return self.mapLoader.map[z][x + y * self.mapLoader.width];
+
+    const safeX: u32 = @intCast(x);
+    const safeY: u32 = @intCast(y);
+    const safeZ: u32 = @intCast(z);
+
+    return &self.mapLoader.map[safeZ][@intCast(safeX + safeY * self.mapLoader.width)];
 }
 
 pub fn deinit(self: *GameMap) void {
