@@ -107,7 +107,6 @@ pub fn quit() void {
 
 pub const ScanCode = enum(c_int) {
     a = sdl.SDL_SCANCODE_A,
-    d = sdl.SDL_SCANCODE_D,
     i = sdl.SDL_SCANCODE_I,
     k = sdl.SDL_SCANCODE_K,
     l = sdl.SDL_SCANCODE_L,
@@ -117,6 +116,11 @@ pub const ScanCode = enum(c_int) {
     t = sdl.SDL_SCANCODE_T,
     w = sdl.SDL_SCANCODE_W,
     x = sdl.SDL_SCANCODE_X,
+    z = sdl.SDL_SCANCODE_Z,
+    q = sdl.SDL_SCANCODE_Q,
+    d = sdl.SDL_SCANCODE_D,
+    e = sdl.SDL_SCANCODE_E,
+    tab = sdl.SDL_SCANCODE_TAB,
 };
 
 pub const KeyboardState = struct {
@@ -126,6 +130,31 @@ pub const KeyboardState = struct {
         return self.state[@intCast(@intFromEnum(scanCode))] == 1;
     }
 };
+
+pub const MousePosition = struct {
+    x: i32,
+    y: i32,
+};
+
+pub fn getMousePosition() MousePosition {
+    var x: i32 = undefined;
+    var y: i32 = undefined;
+    _ = sdl.SDL_GetMouseState(&x, &y);
+    return .{ .x = x, .y = y };
+}
+
+pub fn getRelativeMousePosition() MousePosition {
+    var x: i32 = undefined;
+    var y: i32 = undefined;
+    _ = sdl.SDL_GetRelativeMouseState(&x, &y);
+    return .{ .x = x, .y = y };
+}
+
+pub fn toggleFPSMouse(active: bool) void {
+    _ = sdl.SDL_SetRelativeMouseMode(@as(c_uint, @intFromBool(active)));
+
+    //_ = sdl.SDL_ShowCursor(@as(c_int, @intFromBool(!active)));
+}
 
 pub fn getKeyboardState() KeyboardState {
     var len: c_int = undefined;

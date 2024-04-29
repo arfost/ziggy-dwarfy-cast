@@ -2,7 +2,10 @@ const std = @import("std");
 const sdl_wrapper = @import("sdl_wrapper.zig");
 const Renderer = @import("renderer.zig");
 const MapLoader = @import("game/MapLoader.zig");
+const Player = @import("game/Player.zig");
 const GameMap = @import("game/GameMap.zig");
+
+var cursorFps: bool = false;
 
 pub fn main() anyerror!void {
     var gp = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
@@ -13,6 +16,8 @@ pub fn main() anyerror!void {
     defer map_loader.deinit();
 
     var game_map = GameMap.init(&map_loader);
+
+    var player = Player.init(0, 0, 0);
 
     var renderer = try Renderer.init(&allocator, 1280, 720, 800);
     defer renderer.deinit();
@@ -27,10 +32,6 @@ pub fn main() anyerror!void {
 
     var ticks: u32 = 0xFFFFFF;
     while (ticks > 0) : (ticks -= 1) {
-        if (processInput())
-            break;
-        if (processEvents(&renderer))
-            break;
 
         // Quick and dirty cap at ~60FPs.
         old_time = time;
@@ -40,50 +41,58 @@ pub fn main() anyerror!void {
         if (delta_time < min_time_per_frame) {
             std.time.sleep(@intCast(min_time_per_frame - delta_time));
         }
+
         delta_time = std.time.nanoTimestamp() - old_time;
         const frame_time_seconds = @as(f32, @floatFromInt(delta_time)) / std.time.ns_per_s;
 
-        renderer.render(frame_time_seconds);
+        if (processInput(&player, frame_time_seconds))
+            break;
+        if (processEvents(&renderer))
+            break;
+
+        renderer.render(frame_time_seconds, &player, &game_map);
     }
 }
 
 // Basic movement for testing.
-pub fn processInput() bool {
+pub fn processInput(player: *Player, frame_time_seconds: f32) bool {
     var keys = sdl_wrapper.getKeyboardState();
 
-    // if (keys.isPressed(.k))
-    //     engine.turnLeft(state);
+    if (keys.isPressed(.z)) {
+        player.walk(frame_time_seconds * 5.0);
+    }
 
-    // if (keys.isPressed(.l))
-    //     engine.turnRight(state);
+    if (keys.isPressed(.s)) {
+        player.walk(frame_time_seconds * -5.0);
+    }
 
-    // if (keys.isPressed(.w))
-    //     engine.moveForward(state);
+    if (keys.isPressed(.q)) {
+        player.strafe(frame_time_seconds * 5.0);
+    }
 
-    // if (keys.isPressed(.s))
-    //     engine.moveBackward(state);
+    if (keys.isPressed(.d)) {
+        player.strafe(frame_time_seconds * -5.0);
+    }
 
-    // if (keys.isPressed(.a))
-    //     engine.strafeLeft(state);
+    if (keys.isPressed(.a)) {
+        player.fly(frame_time_seconds * 5.0);
+    }
 
-    // if (keys.isPressed(.d))
-    //     engine.strafeRight(state);
+    if (keys.isPressed(.e)) {
+        player.fly(frame_time_seconds * -5.0);
+    }
 
-    // if (keys.isPressed(.i)) {
-    //     std.debug.print("state {}\n", .{state});
-    // }
+    if (keys.isPressed(.tab)) {
+        cursorFps = !cursorFps;
+        std.log.debug("set mouse fps mode {any}", .{cursorFps});
+        sdl_wrapper.toggleFPSMouse(cursorFps);
+    }
+    const mouseRelative = sdl_wrapper.getRelativeMousePosition();
 
-    // if (keys.isPressed(.t)) {
-    //     engine.toggleTextures(state);
-    // }
-
-    // if (keys.isPressed(.m)) {
-    //     engine.toggleMap(state);
-    // }
-
-    // if (keys.isPressed(.g)) {
-    //     engine.toggleMainGame(state);
-    // }
+    const turnValue: f32 = (@as(f32, @floatFromInt(mouseRelative.x))) * frame_time_seconds * (std.math.pi / 180.0);
+    const pitchValue: f32 = (@as(f32, @floatFromInt(mouseRelative.y))) * frame_time_seconds * (std.math.pi / 180.0);
+    player.turn(turnValue);
+    player.pitchChange(pitchValue);
 
     if (keys.isPressed(.x)) {
         return true;

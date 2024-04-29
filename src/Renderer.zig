@@ -1,6 +1,8 @@
 const std = @import("std");
 const sdl_wrapper = @import("sdl_wrapper.zig");
 const Texture = @import("game/Texture.zig").Texture;
+const Player = @import("game/Player.zig");
+const GameMap = @import("game/GameMap.zig");
 const Allocator = std.mem.Allocator;
 
 const texturesFilepath = [_][]const u8{
@@ -115,7 +117,9 @@ pub fn init(allocator: *Allocator, width: u32, height: u32, resolution: u32) !Re
     return renderer;
 }
 
-pub fn render(self: *Renderer, delta: f32) void {
+pub fn render(self: *Renderer, delta: f32, player: *Player, game_map: *GameMap) void {
+    _ = game_map;
+    _ = player;
     const fps = @as(i32, @intFromFloat(1 / delta));
     const fps_string = std.fmt.bufPrintZ(self.string_buffer, "fps : {d}", .{fps}) catch |err| {
         std.debug.print("Failed to allocate string: {any}\n", .{err});
