@@ -19,7 +19,7 @@ pub fn main() anyerror!void {
 
     var player = Player.init(0, 0, 0);
 
-    var renderer = try Renderer.init(&allocator, 1280, 720, 800);
+    var renderer = try Renderer.init(&allocator, 1280, 720, 640);
     defer renderer.deinit();
 
     const cellInfos = game_map.getCellInfos(2, 2, 2);
@@ -58,23 +58,23 @@ pub fn main() anyerror!void {
 pub fn processInput(player: *Player, frame_time_seconds: f32) bool {
     var keys = sdl_wrapper.getKeyboardState();
 
-    if (keys.isPressed(.z)) {
-        player.walk(frame_time_seconds * 5.0);
+    if (keys.isPressed(.w)) {
+        player.walk(frame_time_seconds * -4.0);
     }
 
     if (keys.isPressed(.s)) {
-        player.walk(frame_time_seconds * -5.0);
-    }
-
-    if (keys.isPressed(.q)) {
-        player.strafe(frame_time_seconds * 5.0);
-    }
-
-    if (keys.isPressed(.d)) {
-        player.strafe(frame_time_seconds * -5.0);
+        player.walk(frame_time_seconds * 4.0);
     }
 
     if (keys.isPressed(.a)) {
+        player.strafe(frame_time_seconds * -5.0);
+    }
+
+    if (keys.isPressed(.d)) {
+        player.strafe(frame_time_seconds * 5.0);
+    }
+
+    if (keys.isPressed(.q)) {
         player.fly(frame_time_seconds * 5.0);
     }
 

@@ -19,7 +19,7 @@ pub const CastStep = struct {
     ceilingInfos: ?*MapCell,
     water: u8 = 0,
     floorOnly: bool = false,
-    zLevel: u32 = 0,
+    zLevel: i32 = 0,
 };
 
 const RayStep = struct {
@@ -41,6 +41,7 @@ const Raycaster = @This();
 
 range: u32,
 zRange: u32,
+nzRange: i32,
 steps: [250]CastStep,
 lastStep: u32,
 
@@ -48,16 +49,15 @@ pub fn init(range: u32, zRange: u32) Raycaster {
     const raycaster = Raycaster{
         .range = range,
         .zRange = zRange,
+        .nzRange = 0 - @as(i32, @intCast(zRange)),
         .steps = [_]CastStep{undefined} ** 250,
         .lastStep = 0,
     };
 
-    std.log.debug("wtf {any}", .{raycaster.steps});
-
     return raycaster;
 }
 
-pub fn cast(self: *Raycaster, player: *Player, cameraX: f32, map: *GameMap, zLevel: u32) []CastStep {
+pub fn cast(self: *Raycaster, player: *Player, cameraX: f32, map: *GameMap, zLevel: i32) []CastStep {
     self.lastStep = 0;
     self.steps = [_]CastStep{undefined} ** 250;
 
@@ -109,7 +109,7 @@ pub fn cast(self: *Raycaster, player: *Player, cameraX: f32, map: *GameMap, zLev
     return self.steps[0..self.lastStep];
 }
 
-fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, zLevel: u32, map: *GameMap, zOffset: i32) void {
+fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, zLevel: i32, map: *GameMap, zOffset: i32) void {
     var registerBackWall = false;
     var alreadyLookedDown = false;
     var alreadyLookedUp = false;
@@ -178,7 +178,7 @@ fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, zLevel: u32, 
                     alreadyLookedDown = false;
                     registerBackWall = true;
                 } else {
-                    if (zOffset <= 0 and zOffset > (0 - self.zRange) and !alreadyLookedDown) {
+                    if (zOffset <= 0 and zOffset > self.nzRange and !alreadyLookedDown) {
                         registerBackWall = true;
 
                         //delayedRay.push([player, mapX, mapY, sideDistX, sideDistY, deltaDistX, deltaDistY, stepX, stepY, side, rayDirX, rayDirY, zLevel-1, map, zOffset-1, step]);
@@ -187,7 +187,7 @@ fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, zLevel: u32, 
                     }
                 }
             } else |_| {
-                std.log.debug("hors map {d}", .{underLevel});
+                //std.log.debug("hors map {d}", .{underLevel});
             }
         }
 
@@ -205,7 +205,7 @@ fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, zLevel: u32, 
                 }
             }
         } else |_| {
-            std.log.debug("hors map {d}", .{zLevel + 1});
+            //std.log.debug("hors map {d}", .{zLevel + 1});
         }
     }
 
