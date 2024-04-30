@@ -4,7 +4,7 @@ const MapCell = @import("game/MapLoader.zig").MapCell;
 const Player = @import("game/Player.zig");
 const GameMap = @import("game/GameMap.zig");
 
-pub const CastStep = struct {
+pub const RayStepResult = struct {
     step: u32 = 0,
     backDistance: f32 = 0.0,
     backOffset: f32 = 0.0,
@@ -35,6 +35,8 @@ const RayStep = struct {
     deltaDistY: f32 = 0.0,
     rayDirX: f32 = 0.0,
     rayDirY: f32 = 0.0,
+    zLevel: i32 = 0,
+    zOffset: i32 = 0,
 };
 
 const Raycaster = @This();
@@ -42,7 +44,7 @@ const Raycaster = @This();
 range: u32,
 zRange: u32,
 nzRange: i32,
-steps: [250]CastStep,
+steps: [250]RayStepResult,
 lastStep: u32,
 
 pub fn init(range: u32, zRange: u32) Raycaster {
@@ -50,27 +52,20 @@ pub fn init(range: u32, zRange: u32) Raycaster {
         .range = range,
         .zRange = zRange,
         .nzRange = 0 - @as(i32, @intCast(zRange)),
-        .steps = [_]CastStep{undefined} ** 250,
+        .steps = [_]RayStepResult{undefined} ** 250,
         .lastStep = 0,
     };
 
     return raycaster;
 }
 
-pub fn cast(self: *Raycaster, player: *Player, cameraX: f32, map: *GameMap, zLevel: i32) []CastStep {
+pub fn cast(self: *Raycaster, player: *Player, cameraX: f32, map: *GameMap, zLevel: i32) []RayStepResult {
     self.lastStep = 0;
-    self.steps = [_]CastStep{undefined} ** 250;
+    self.steps = [_]RayStepResult{undefined} ** 250;
 
     var rayStep = RayStep{
-        .side = 0,
-        .sideDistX = 0.0,
-        .sideDistY = 0.0,
-        .mapX = 0,
-        .mapY = 0,
-        .deltaDistX = 0.0,
-        .deltaDistY = 0.0,
-        .rayDirX = 0.0,
-        .rayDirY = 0.0,
+        .zLevel = zLevel,
+        .zOffset = 0,
     };
 
     rayStep.rayDirX = -player.dirX + player.planeX * cameraX;
@@ -105,15 +100,16 @@ pub fn cast(self: *Raycaster, player: *Player, cameraX: f32, map: *GameMap, zLev
         rayStep.sideDistY = (@as(f32, @floatFromInt(rayStep.mapY)) + 1 - player.y) * rayStep.deltaDistY;
     }
 
-    self._startRay(player, &rayStep, zLevel, map, 0);
+    self._startRay(player, &rayStep, map);
     return self.steps[0..self.lastStep];
 }
 
-fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, zLevel: i32, map: *GameMap, zOffset: i32) void {
+fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, map: *GameMap) void {
     var registerBackWall = false;
     var alreadyLookedDown = false;
     var alreadyLookedUp = false;
-    // const delayedRays = [_]DelayedRay{undefined} ** 20;
+    var delayedRays = [_]RayStep{undefined} ** 20;
+    var delayedCount: u8 = 0;
 
     while (rayStep.step <= self.range) : (rayStep.step += 1) {
         //jump to next map square, either in x-direction, or in y-direction
@@ -152,10 +148,10 @@ fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, zLevel: i32, 
         stepInfos.frontDistance = perpWallDist;
         stepInfos.frontOffset = wallX - @floor(wallX);
         stepInfos.frontSide = rayStep.side;
-        stepInfos.zLevel = zLevel;
+        stepInfos.zLevel = rayStep.zLevel;
         stepInfos.cellInfos = null;
 
-        const cellInfos = map.getCellInfos(rayStep.mapX, rayStep.mapY, @intCast(zLevel)) catch {
+        const cellInfos = map.getCellInfos(rayStep.mapX, rayStep.mapY, rayStep.zLevel) catch {
             break;
         };
 
@@ -170,17 +166,32 @@ fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, zLevel: i32, 
 
             registerBackWall = true;
         } else {
-            const underLevel: i32 = @as(i32, @intCast(zLevel)) - 1;
-            if (map.getCellInfos(rayStep.mapX, rayStep.mapY, underLevel)) |undercellInfos| {
+            if (map.getCellInfos(rayStep.mapX, rayStep.mapY, rayStep.zLevel - 1)) |undercellInfos| {
                 if (undercellInfos.wall_texture != 0 and undercellInfos.heightRatio == 1) {
                     stepInfos.cellInfos = undercellInfos;
                     stepInfos.floorOnly = true;
                     alreadyLookedDown = false;
                     registerBackWall = true;
                 } else {
-                    if (zOffset <= 0 and zOffset > self.nzRange and !alreadyLookedDown) {
+                    if (rayStep.zOffset <= 0 and rayStep.zOffset > self.nzRange and !alreadyLookedDown) {
                         registerBackWall = true;
-
+                        delayedRays[delayedCount] = .{
+                            .step = rayStep.step,
+                            .side = rayStep.side,
+                            .sideDistX = rayStep.sideDistX,
+                            .sideDistY = rayStep.sideDistY,
+                            .mapX = rayStep.mapX,
+                            .mapY = rayStep.mapY,
+                            .stepX = rayStep.stepX,
+                            .stepY = rayStep.stepY,
+                            .deltaDistX = rayStep.deltaDistX,
+                            .deltaDistY = rayStep.deltaDistY,
+                            .rayDirX = rayStep.rayDirX,
+                            .rayDirY = rayStep.rayDirY,
+                            .zLevel = rayStep.zLevel - 1,
+                            .zOffset = rayStep.zOffset - 1,
+                        };
+                        delayedCount += 1;
                         //delayedRay.push([player, mapX, mapY, sideDistX, sideDistY, deltaDistX, deltaDistY, stepX, stepY, side, rayDirX, rayDirY, zLevel-1, map, zOffset-1, step]);
 
                         alreadyLookedDown = true;
@@ -191,16 +202,31 @@ fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, zLevel: i32, 
             }
         }
 
-        if (map.getCellInfos(rayStep.mapX, rayStep.mapY, @intCast(zLevel + 1))) |overcellInfos| {
+        if (map.getCellInfos(rayStep.mapX, rayStep.mapY, rayStep.zLevel + 1)) |overcellInfos| {
             if (overcellInfos.floor_texture != 0) {
                 stepInfos.ceilingInfos = overcellInfos;
                 registerBackWall = true;
                 alreadyLookedUp = false;
             } else {
-                if (zOffset >= 0 and zOffset < self.zRange and !alreadyLookedUp) {
+                if (rayStep.zOffset >= 0 and rayStep.zOffset < self.zRange and !alreadyLookedUp) {
                     registerBackWall = true;
-                    //delayedRay.push([player, mapX, mapY, sideDistX, sideDistY, deltaDistX, deltaDistY, stepX, stepY, side, rayDirX, rayDirY, zLevel+1, map, zOffset+1, step]);
-                    // this._startRay(player, mapX, mapY, sideDistX, sideDistY, deltaDistX, deltaDistY, stepX, stepY, side, rayDirX, rayDirY, zLevel+1, map, this.range, step)
+                    delayedRays[delayedCount] = .{
+                        .step = rayStep.step,
+                        .side = rayStep.side,
+                        .sideDistX = rayStep.sideDistX,
+                        .sideDistY = rayStep.sideDistY,
+                        .mapX = rayStep.mapX,
+                        .mapY = rayStep.mapY,
+                        .stepX = rayStep.stepX,
+                        .stepY = rayStep.stepY,
+                        .deltaDistX = rayStep.deltaDistX,
+                        .deltaDistY = rayStep.deltaDistY,
+                        .rayDirX = rayStep.rayDirX,
+                        .rayDirY = rayStep.rayDirY,
+                        .zLevel = rayStep.zLevel + 1,
+                        .zOffset = rayStep.zOffset + 1,
+                    };
+                    delayedCount += 1;
                     alreadyLookedUp = true;
                 }
             }
@@ -209,10 +235,13 @@ fn _startRay(self: *Raycaster, player: *Player, rayStep: *RayStep, zLevel: i32, 
         }
     }
 
+    for (delayedRays[0..delayedCount]) |*ray| {
+        self._startRay(player, ray, map);
+    }
     //start delayed rays
 }
 
-fn _backWall(step: *CastStep, player: *Player, rayStep: *RayStep) void {
+fn _backWall(step: *RayStepResult, player: *Player, rayStep: *RayStep) void {
     var perpWallDist: f32 = 0.0;
     var wallX: f32 = 0.0; //where exactly the wall was hit
     if (rayStep.side == 0) {
@@ -227,7 +256,7 @@ fn _backWall(step: *CastStep, player: *Player, rayStep: *RayStep) void {
     step.backSide = rayStep.side;
 }
 
-fn _thinWall(step: *CastStep, player: *Player, rayStep: *RayStep) void {
+fn _thinWall(step: *RayStepResult, player: *Player, rayStep: *RayStep) void {
     var perpWallDist: f32 = 0.0;
     var wallX: f32 = 0.0; //where exactly the wall was hit
     if (rayStep.side == 1) {
@@ -251,12 +280,12 @@ fn _thinWall(step: *CastStep, player: *Player, rayStep: *RayStep) void {
     }
 }
 
-fn _nextStep(self: *Raycaster) ?*CastStep {
+fn _nextStep(self: *Raycaster) ?*RayStepResult {
     if (self.lastStep >= 250) {
         return null;
     }
 
-    const step: ?*CastStep = &self.steps[self.lastStep];
+    const step: ?*RayStepResult = &self.steps[self.lastStep];
     self.lastStep += 1;
 
     return step;

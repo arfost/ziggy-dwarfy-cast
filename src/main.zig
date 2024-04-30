@@ -59,27 +59,27 @@ pub fn processInput(player: *Player, frame_time_seconds: f32) bool {
     var keys = sdl_wrapper.getKeyboardState();
 
     if (keys.isPressed(.w)) {
-        player.walk(frame_time_seconds * -4.0);
+        player.walk(frame_time_seconds * -2.0);
     }
 
     if (keys.isPressed(.s)) {
-        player.walk(frame_time_seconds * 4.0);
+        player.walk(frame_time_seconds * 2.0);
     }
 
     if (keys.isPressed(.a)) {
-        player.strafe(frame_time_seconds * -5.0);
+        player.strafe(frame_time_seconds * -2.0);
     }
 
     if (keys.isPressed(.d)) {
-        player.strafe(frame_time_seconds * 5.0);
+        player.strafe(frame_time_seconds * 2.0);
     }
 
     if (keys.isPressed(.q)) {
-        player.fly(frame_time_seconds * 5.0);
+        player.fly(frame_time_seconds * 1.0);
     }
 
     if (keys.isPressed(.e)) {
-        player.fly(frame_time_seconds * -5.0);
+        player.fly(frame_time_seconds * -1.0);
     }
 
     if (keys.isPressed(.tab)) {

@@ -152,7 +152,7 @@ fn _renderColumns(self: *Renderer, player: *Player, map: *GameMap, playerZ: i32)
     }
 }
 
-fn _drawRay(self: *Renderer, rayResult: []Raycaster.CastStep, x: u32, player: *Player, playerZ: i32) void {
+fn _drawRay(self: *Renderer, rayResult: []Raycaster.RayStepResult, x: u32, player: *Player, playerZ: i32) void {
     if (rayResult.len == 0) return;
 
     const fHeight: f32 = @floatFromInt(self.height);
@@ -228,7 +228,7 @@ fn _drawRay(self: *Renderer, rayResult: []Raycaster.CastStep, x: u32, player: *P
                 self._drawWater(x, blockTop, blockHeight, hit.frontDistance, hit.frontSide);
             }
             //draw thin wall
-            if (cellInfos.thin_wall != 0) {
+            if (cellInfos.thin_wall != 0 and hit.thinDistance != 0) {
                 if (zOffset == 0) {
                     self.Zbuffer[x] = hit.thinDistance;
                 }
@@ -236,6 +236,7 @@ fn _drawRay(self: *Renderer, rayResult: []Raycaster.CastStep, x: u32, player: *P
                 const cellThinTop: f32 = (((fHeight + cellThinHeight) / 2) - cellThinHeight) + (cellThinHeight * -zOffset) + (cellThinHeight * zRest) + verticalAdjustement;
                 const blockHeight: f32 = cellThinHeight * cellInfos.heightRatio;
                 const blockTop: f32 = cellThinTop + (cellThinHeight - blockHeight);
+                std.log.debug("block top and such {d} {d} {d} {d}", .{ blockTop, blockHeight, cellThinTop, cellThinHeight });
                 self._drawTexturedColumn(x, blockTop, blockHeight, hit.thinDistance, cellInfos.thin_wall, hit.thinOffset, hit.thinSide, cellInfos.wall_tint);
             }
         }

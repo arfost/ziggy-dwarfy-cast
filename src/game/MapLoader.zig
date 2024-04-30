@@ -23,11 +23,11 @@ const cellDefinitions = [_]MapCell{
     .{ .floor_texture = 1 },
     .{ .floor_texture = 2 },
     .{ .floor_texture = 1, .wall_texture = 3 },
-    .{ .floor_texture = 2, .wall_texture = 3, .thin_wall = 0, .heightRatio = 1, .wall_tint = 0x80FF0000 },
+    .{ .floor_texture = 2, .wall_texture = 3, .thin_wall = 0, .wall_tint = 0x80FF0000 },
     .{ .floor_texture = 1, .wall_texture = 4, .heightRatio = 0.5 },
     .{ .floor_texture = 2, .wall_texture = 5, .heightRatio = 0.2 },
-    .{ .floor_texture = 1, .thin_wall = 6, .heightRatio = 1 },
-    .{ .floor_texture = 2, .thin_wall = 6, .heightRatio = 1 },
+    .{ .floor_texture = 1, .thin_wall = 7, .heightRatio = 1 },
+    .{ .floor_texture = 2, .thin_wall = 7, .heightRatio = 1 },
 };
 
 pub const MapLoader = @This();
