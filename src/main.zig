@@ -5,8 +5,6 @@ const MapLoader = @import("game/MapLoader.zig");
 const Player = @import("game/Player.zig");
 const GameMap = @import("game/GameMap.zig");
 
-var cursorFps: bool = false;
-
 pub fn main() anyerror!void {
     var gp = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
     defer _ = gp.deinit();
@@ -19,12 +17,14 @@ pub fn main() anyerror!void {
 
     var player = Player.init(0, 0, 0);
 
-    var renderer = try Renderer.init(&allocator, 1280, 720, 640);
+    var renderer = try Renderer.init(&allocator, 640, 360, 320);
     defer renderer.deinit();
 
     const cellInfos = game_map.getCellInfos(2, 2, 2);
 
     std.log.debug("cellInfos : {any}", .{cellInfos});
+
+    sdl_wrapper.toggleFPSMouse(true);
 
     var time: i128 = std.time.nanoTimestamp();
     var old_time: i128 = std.time.nanoTimestamp();
@@ -47,7 +47,7 @@ pub fn main() anyerror!void {
 
         if (processInput(&player, frame_time_seconds))
             break;
-        if (processEvents(&renderer))
+        if (processEvents(&renderer, &player))
             break;
 
         renderer.render(frame_time_seconds, &player, &game_map);
@@ -82,18 +82,6 @@ pub fn processInput(player: *Player, frame_time_seconds: f32) bool {
         player.fly(frame_time_seconds * -1.0);
     }
 
-    if (keys.isPressed(.tab)) {
-        cursorFps = !cursorFps;
-        std.log.debug("set mouse fps mode {any}", .{cursorFps});
-        sdl_wrapper.toggleFPSMouse(cursorFps);
-    }
-    const mouseRelative = sdl_wrapper.getRelativeMousePosition();
-
-    const turnValue: f32 = (@as(f32, @floatFromInt(mouseRelative.x))) * frame_time_seconds * (std.math.pi / 180.0);
-    const pitchValue: f32 = (@as(f32, @floatFromInt(mouseRelative.y))) * frame_time_seconds * (std.math.pi / 180.0);
-    player.turn(turnValue);
-    player.pitchChange(pitchValue);
-
     if (keys.isPressed(.x)) {
         return true;
     }
@@ -101,9 +89,14 @@ pub fn processInput(player: *Player, frame_time_seconds: f32) bool {
     return false;
 }
 
-pub fn processEvents(renderer: *Renderer) bool {
+pub fn processEvents(renderer: *Renderer, player: *Player) bool {
     while (sdl_wrapper.pollEvent()) |event| {
         switch (event) {
+            .mouse => {
+                // std.log.debug("mouse event : {any}", .{event.mouse});
+                player.turn(event.mouse.xrel);
+                player.pitchChange(event.mouse.yrel);
+            },
             .quit => return true,
             .window => switch (event.window) {
                 .resize => return renderer.setScreenSize(event.window.resize.width, event.window.resize.height),

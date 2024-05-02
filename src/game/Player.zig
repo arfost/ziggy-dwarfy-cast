@@ -35,7 +35,8 @@ pub fn init(x: f32, y: f32, z: f32) Player {
     return player;
 }
 
-pub fn turn(self: *Player, angle: f32) void {
+pub fn turn(self: *Player, angleI: i32) void {
+    const angle: f32 = @as(f32, @floatFromInt(angleI)) * 0.01;
     const oldDirX = self.dirX;
     self.dirX = self.dirX * @cos(-angle) - self.dirY * @sin(-angle);
     self.dirY = oldDirX * @sin(-angle) + self.dirY * @cos(-angle);
@@ -45,8 +46,9 @@ pub fn turn(self: *Player, angle: f32) void {
     self.planeY = oldPlaneX * @sin(-angle) + self.planeY * @cos(-angle);
 }
 
-pub fn pitchChange(self: *Player, angle: f32) void {
-    self.pitch += angle;
+pub fn pitchChange(self: *Player, angleI: i32) void {
+    const angle: f32 = @floatFromInt(angleI);
+    self.pitch += angle * 0.01;
     if (self.pitch > 0.5) {
         self.pitch = 0.5;
     } else if (self.pitch < -0.5) {

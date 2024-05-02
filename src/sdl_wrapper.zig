@@ -165,12 +165,14 @@ pub fn getKeyboardState() KeyboardState {
 // Some good inspiration from xq's sdl bindings on how to handle this stuff.
 pub const Event = union(enum) {
     quit: sdl.SDL_QuitEvent,
+    mouse: sdl.SDL_MouseMotionEvent,
     window: WindowEvent,
     unhandled: void,
 
     fn from(sdl_event: sdl.SDL_Event) Event {
         return switch (sdl_event.type) {
             sdl.SDL_QUIT => Event{ .quit = sdl_event.quit },
+            sdl.SDL_MOUSEMOTION => Event{ .mouse = sdl_event.motion },
             sdl.SDL_WINDOWEVENT => Event{ .window = WindowEvent.from(sdl_event.window) },
             else => Event.unhandled,
         };

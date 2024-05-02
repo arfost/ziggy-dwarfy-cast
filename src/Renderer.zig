@@ -236,7 +236,6 @@ fn _drawRay(self: *Renderer, rayResult: []Raycaster.RayStepResult, x: u32, playe
                 const cellThinTop: f32 = (((fHeight + cellThinHeight) / 2) - cellThinHeight) + (cellThinHeight * -zOffset) + (cellThinHeight * zRest) + verticalAdjustement;
                 const blockHeight: f32 = cellThinHeight * cellInfos.heightRatio;
                 const blockTop: f32 = cellThinTop + (cellThinHeight - blockHeight);
-                std.log.debug("block top and such {d} {d} {d} {d}", .{ blockTop, blockHeight, cellThinTop, cellThinHeight });
                 self._drawTexturedColumn(x, blockTop, blockHeight, hit.thinDistance, cellInfos.thin_wall, hit.thinOffset, hit.thinSide, cellInfos.wall_tint);
             }
         }
