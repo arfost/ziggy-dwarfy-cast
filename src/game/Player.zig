@@ -61,20 +61,12 @@ pub fn fly(self: *Player, distance: f32) void {
 }
 
 pub fn walk(self: *Player, distance: f32) void {
-    // var dx = Math.cos(this.direction) * distance;
-    // var dy = Math.sin(this.direction) * distance;
-    // this.x += dx;
-    // this.y += dy;
     self.x += self.dirX * distance;
     self.y += self.dirY * distance;
     self.paces += distance;
 }
 
 pub fn strafe(self: *Player, distance: f32) void {
-    // var dx = Math.cos(this.direction + Math.PI/2) * distance;
-    // var dy = Math.sin(this.direction + Math.PI/2) * distance;
-    // this.x += dx;
-    // this.y += dy;
     self.x += self.planeX * distance;
     self.y += self.planeY * distance;
     self.paces += distance;

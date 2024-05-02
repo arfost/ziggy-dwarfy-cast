@@ -288,14 +288,14 @@ fn _drawColoredColumn(self: *Renderer, x: u32, top: f32, height: f32, distance: 
 
 fn _drawTexturedColumn(self: *Renderer, x: u32, top: f32, height: f32, distance: f32, textureIndex: u32, textureOffset: f32, side: u8, tint: u32) void {
     //std.log.debug("textured colmun ? {d} {d} {d}", .{ distance, textureIndex, textureOffset });
-    _ = distance;
-    _ = side;
-    _ = tint;
 
     const texture = self.textures[textureIndex];
     const safeTop: i32 = @intFromFloat(top);
 
     const texX: u32 = @intFromFloat(textureOffset * @as(f32, @floatFromInt(texture.width - 1)));
+
+    const distModifier: f32 = if (side == 1) 0.0 else 3.0;
+    const distTint: u32 = applyDistanceToColor(0x000000, normalise255(distance + distModifier, 15));
 
     var currentX: u32 = 0;
     while ((x * self.spacing) + currentX < (x + 1) * self.spacing) : (currentX += 1) {
@@ -309,15 +309,10 @@ fn _drawTexturedColumn(self: *Renderer, x: u32, top: f32, height: f32, distance:
             const texelYprojection = @as(f32, @floatFromInt(texture.height - 1)) * @abs((@as(f32, @floatFromInt(currentY))) / height);
             // std.log.debug("proj {d} {d} {d}", .{ texelYprojection, currentY, height });
             const texel = texture.data[(texX + currentX) + (@as(u32, @intFromFloat(texelYprojection)) * texture.width)];
-            // var pixel = mergePixels(texel, tint);
-            // const shadeTint = 0x010101 * @as(u32, @intFromFloat(distance * 0.1));
-            // pixel = mergePixels(pixel, shadeTint);
-
-            // if (side == 1) {
-            //     pixel = (pixel >> 1) & 0x7f7f7f;
-            // }
 
             self.screen_buffer[@intCast(index)] = mergePixels(self.screen_buffer[@intCast(index)], texel);
+            self.screen_buffer[@intCast(index)] = mergePixels(self.screen_buffer[@intCast(index)], tint);
+            self.screen_buffer[@intCast(index)] = mergePixels(self.screen_buffer[@intCast(index)], distTint);
         }
     }
 }
@@ -415,6 +410,16 @@ fn drawRect(self: *Renderer, x: u32, y: u32, width: u32, height: u32, colour: Co
 fn drawLine(self: *Renderer, x1: u32, y1: u32, x2: u32, y2: u32, colour: Colour) void {
     const sdl_color = sdl_wrapper.Color{ .r = colour.r, .g = colour.g, .b = colour.b, .a = 255 };
     sdl_wrapper.drawLine(self.sdl_renderer, x1, y1, x2, y2, sdl_color);
+}
+
+//normalise a value and max to in integer between 0 and 255
+fn normalise255(value: f32, max: f32) u8 {
+    return @min(@as(u16, @intFromFloat((value / max) * 255)), 255);
+}
+
+//take a u32 color and add alpha it depending on a distance value and a distance max which should be no transparent
+fn applyDistanceToColor(color: u32, distance: u32) u32 {
+    return (color & 0x00ffffff) | (distance << 24);
 }
 
 //take two u32s pixels and merge them together depending on the alpha value of the second pixel
